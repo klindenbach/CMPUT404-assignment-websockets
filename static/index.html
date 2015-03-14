@@ -35,6 +35,9 @@ var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
 var wscounter = 0;
 var socket;
+var imageObj = new Image();
+imageObj.src = '/static/bg1.jpg';
+context.drawImage(imageObj, 0, 0, W, H);
 
 function debug(str) {
     var debugDiv = document.getElementById('debug');
@@ -55,6 +58,7 @@ function drawCircle(context,entity) {
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
         arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
+	fill();
         stroke();                                
     }
 }
@@ -71,9 +75,10 @@ function prepEntity(entity) {
 
 function clearFrame() {
     with(context) {
-	moveTo(0,0);
-	fillStyle = "#000";
-	fillRect(0,0,W,H);
+	context.drawImage(imageObj, 0, 0, W, H);
+	//moveTo(0,0);
+	//fillStyle = "#000";
+	//fillRect(0,0,W,H);
     }
 
 }
@@ -241,7 +246,7 @@ mouse.mouseuppers.push(function(x,y,clicked,e) {
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
+    addEntityWithoutName({'x':x,'y':y,'colour':'yellow',
                           'radius':10});
 });
 
