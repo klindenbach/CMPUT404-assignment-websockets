@@ -49,7 +49,7 @@
    - [ ] Use JSON or XML to communicate (no plain text!)
    - [ ] The webservice can pass all the tests in freetests.py
    - [ ] The webservice can serve /static/index.html
-   - [ ] static/index.html displays the current state of the webservice
+   - [X] static/index.html displays the current state of the webservice
    - [ ] static/index.html responds to clicks within 100ms on average
    - [ ] Make static/index.html images look nice
 
