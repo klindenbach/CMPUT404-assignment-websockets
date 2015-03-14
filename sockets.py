@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import flask
-from flask import Flask, request
+from flask import Flask, request, render_template, make_response
 from flask_sockets import Sockets
 import gevent
 from gevent import queue
@@ -22,7 +22,7 @@ import time
 import json
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='static')
 sockets = Sockets(app)
 app.debug = True
 
@@ -39,7 +39,7 @@ class World:
         entry = self.space.get(entity,dict())
         entry[key] = value
         self.space[entity] = entry
-        self.update_listeners( entity )
+        #self.update_listeners( entity )
 
     def set(self, entity, data):
         self.space[entity] = data
@@ -48,7 +48,10 @@ class World:
     def update_listeners(self, entity):
         '''update the set listeners'''
         for listener in self.listeners:
-            listener(entity, self.get(entity))
+            try:
+                listener(entity, self.get(entity))
+            except:
+                self.listeners.remove(listener)
 
     def clear(self):
         self.space = dict()
@@ -61,28 +64,38 @@ class World:
 
 myWorld = World()        
 
-def set_listener( entity, data ):
+def set_listener(socket, entity, data ):
     ''' do something with the update ! '''
+    obj = {}
+    obj[entity] = data
+    socket.send(json.dumps(obj))
 
-myWorld.add_set_listener( set_listener )
-        
 @app.route('/')
 def hello():
-    '''Return something coherent here.. perhaps redirect to /static/index.html '''
-    return None
+    return render_template('index.html')
 
 def read_ws(ws,client):
     '''A greenlet function that reads from the websocket and updates the world'''
-    # XXX: TODO IMPLEMENT ME
-    return None
+    r = ws.receive()
+    d = json.loads(r)
+    for entity in d:
+        for key in d[entity]:
+            myWorld.update(entity, key, d[entity][key])
+        myWorld.update_listeners(entity)
 
 @sockets.route('/subscribe')
 def subscribe_socket(ws):
     '''Fufill the websocket URL of /subscribe, every update notify the
        websocket and read updates from the websocket '''
-    # XXX: TODO IMPLEMENT ME
-    return None
-
+    myWorld.add_set_listener(lambda x, y : set_listener(ws, x, y))
+    ws.send(json.dumps(myWorld.world()))
+    while True:
+        try:
+            read_ws(ws,None)
+        except:
+            ws.close()
+            break
+       
 
 def flask_post_json():
     '''Ah the joys of frameworks! They do so much work for you
@@ -96,24 +109,27 @@ def flask_post_json():
 
 @app.route("/entity/<entity>", methods=['POST','PUT'])
 def update(entity):
-    '''update the entities via this interface'''
-    return None
+    d = json.loads(request.data)
+    for key in d:
+        myWorld.update(entity, key, d[key])
+    return request.data
 
 @app.route("/world", methods=['POST','GET'])    
 def world():
-    '''you should probably return the world here'''
-    return None
+    response = make_response(json.dumps(myWorld.world()))
+    response.headers['Content-Type'] = "application/json"
+    
+    return response
 
 @app.route("/entity/<entity>")    
 def get_entity(entity):
-    '''This is the GET version of the entity interface, return a representation of the entity'''
-    return None
+    return json.dumps(myWorld.get(entity))
 
 
 @app.route("/clear", methods=['POST','GET'])
 def clear():
-    '''Clear the world out!'''
-    return None
+    myWorld.clear()
+    return ""
 
 
 
